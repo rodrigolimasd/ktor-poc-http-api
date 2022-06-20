@@ -1,0 +1,1 @@
+rootProject.name = "com.rodtech.ktor-poc-http-api"
