@@ -4,9 +4,7 @@ import kotlinx.serialization.Serializable
 import org.jetbrains.exposed.sql.*
 
 @Serializable
-data class Task(val id: Long, val title:String, val description: String, val done: Boolean)
-
-val taskStorage = mutableListOf<Task>()
+data class Task(val id: Long? = null, val title:String, val description: String, val done: Boolean)
 
 object Tasks : Table() {
     val id = long("id").autoIncrement()
