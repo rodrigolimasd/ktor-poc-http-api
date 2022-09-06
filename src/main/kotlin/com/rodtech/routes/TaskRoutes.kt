@@ -1,40 +1,48 @@
 package com.rodtech.routes
 
 import com.rodtech.model.Task
-import com.rodtech.model.taskStorage
+import com.rodtech.service.impl.taskService
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.util.*
 
 fun Route.taskRouting() {
     route("/task") {
         get {
-            if (taskStorage.isNotEmpty()) {
-                call.respond(taskStorage)
+            val list = taskService.getAll()
+            if (list.isNotEmpty()) {
+                call.respond(list)
             } else {
                 call.respondText("No taks found", status = HttpStatusCode.OK)
             }
         }
-        get("{title?}") {
-            val title = call.parameters["title"] ?: return@get call.respondText(
-                "Missing title", status = HttpStatusCode.BadRequest
-            )
-            val task = taskStorage.find { it.title.equals(title, ignoreCase = true) } ?: return@get call.respondText(
-                "No task with title $title",
+        get("{id?}") {
+            val id = call.parameters.getOrFail<Long>("id").toLong()
+            val task = taskService.getById(id) ?: return@get call.respondText(
+                "No task with id $id",
                 status = HttpStatusCode.NotFound
             )
             call.respond(task)
         }
         post {
             val task = call.receive<Task>()
-            taskStorage.add(task)
-            call.respondText("Task add", status = HttpStatusCode.Created)
+            val result = taskService.add(task) ?: return@post call.respond(HttpStatusCode.BadRequest)
+            call.respond(HttpStatusCode.Created, result)
         }
-        delete("{title?}") {
-            val title = call.parameters["title"] ?: return@delete call.respond(HttpStatusCode.BadRequest)
-            if(taskStorage.removeIf{ it.title.equals(title, ignoreCase = true)}) {
+        put {
+            val task = call.receive<Task>()
+            if(taskService.edit(task)) {
+                call.respondText("Task edited", status = HttpStatusCode.NoContent)
+            } else {
+                call.respondText("Task not edited", status = HttpStatusCode.BadRequest)
+            }
+        }
+        delete("{id?}") {
+            val id = call.parameters.getOrFail<Long>("id").toLong()
+            if(taskService.delete(id)) {
                 call.respondText("Task removed", status = HttpStatusCode.NoContent)
             } else {
                 call.respondText("Not found", status = HttpStatusCode.NotFound)
